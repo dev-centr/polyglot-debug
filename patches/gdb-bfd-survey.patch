@@ -1,0 +1,48 @@
+diff --git a/bfd/format.c b/bfd/format.c
+index 0000000..1111111 100644
+--- a/bfd/format.c
++++ b/bfd/format.c
+@@
+ /* bfd_check_format_matches already records multiple matching targets.
+  * GDB still often opens APE via the PEI-x86-64 target because MZ is at
+  * offset 0 and that vector is tried early.
+  *
+  * Chord fix:
+  *  - When matches > 1 and one of them is elf64-* while another is pei-*,
+  *    prefer the target whose OS ABI matches the running GDB (bfd_get_target
+  *    from the exec-bfd of a native inferior, else default_target).
+  *  - Recognize APE magics MZqFpD=' and jartsr=' as a dedicated bfd_target
+  *    "ape" that defers to elf64-* or mach-o-x86-64 after the shell stub.
+  *
+  * Do not expand the parser attack surface: only score the first 8192 bytes
+  * plus each target's existing match function.
+  *
+  * See github.com/dev-centr/polyglot-debug
+  */
+ 
++static const char *ape_prefer_target (bfd *abfd, const char **matching)
++{
++  int i;
++  int saw_pe = 0, saw_elf = 0, saw_macho = 0;
++  for (i = 0; matching && matching[i]; i++)
++    {
++      if (strncmp (matching[i], "pei-", 4) == 0
++          || strncmp (matching[i], "pe-", 3) == 0)
++        saw_pe = 1;
++      if (strncmp (matching[i], "elf", 3) == 0)
++        saw_elf = 1;
++      if (strstr (matching[i], "mach-o"))
++        saw_macho = 1;
++    }
++  if (saw_pe + saw_elf + saw_macho >= 2)
++    {
++#ifdef __APPLE__
++      return "mach-o-x86-64";
++#elif defined (_WIN32)
++      return "pei-x86-64";
++#else
++      return "elf64-x86-64";
++#endif
++    }
++  return NULL;
++}

@@ -1,0 +1,14 @@
+*
+!.gitignore
+!LICENSE
+!README.adoc
+!CHANGELOG.adoc
+!AGENTS.md
+!docs/
+!docs/**
+!patches/
+!patches/**
+!plugin/
+!plugin/**
+!.github/
+!.github/**

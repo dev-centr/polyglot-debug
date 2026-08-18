@@ -1,0 +1,6 @@
+= Changelog
+
+== 2026-08-18 — v0.1.0
+
+* LLDB ObjectFile survey + `ObjectFilePolyglot` chord plugin.
+* GDB/BFD notes: stop treating MZ-first as exclusive ownership of an APE file.

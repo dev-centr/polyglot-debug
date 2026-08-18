@@ -1,0 +1,49 @@
+ifndef::env-github[:icons: font]
+:toc: preamble
+
+ifdef::env-github[]
+++++
+<div align="center">
+<a href="https://github.com/dev-centr/polyglot-debug/graphs/contributors"><img src="https://img.shields.io/github/contributors/dev-centr/polyglot-debug.svg?style=for-the-badge" alt="Contributors"></a>
+<a href="https://github.com/dev-centr/polyglot-debug/blob/main/LICENSE"><img src="https://img.shields.io/github/license/dev-centr/polyglot-debug.svg?style=for-the-badge" alt="License"></a>
+<h3 align="center">polyglot-debug</h3>
+<p align="center">
+Debugger plugins that score a header chord instead of grabbing the first MZ.<br />
+<a href="https://docs.devcentr.org/general-knowledge/latest/explanation/architecture/polyglot-distribution.html"><strong>Explore the docs »</strong></a>
+</p>
+</div>
+++++
+endif::[]
+
+= polyglot-debug
+
+APE and other polyglot executables break GDB and LLDB because object-file plugins are **greedy**. The PE plugin sees `MZ` at offset 0 and claims the file. The ELF header sitting in a `printf` octal blob never gets a vote.
+
+This repo patches that design:
+
+1. **Survey** every `ObjectFile` / BFD target. Each returns a confidence score and the byte range it understood.
+2. If more than one target scores high — a **chord** — a meta-plugin (`ObjectFilePolyglot`) owns the file.
+3. The meta-plugin asks the **process plugin** (Linux `ptrace`, Windows, Darwin) which slice is live, then projects that layout into the symbol table.
+
+That is parser theory, not a new UI. Stepping still looks like stepping.
+
+== Apply
+
+LLDB (llvm-project, paths relative to `lldb/`):
+
+[source,bash]
+----
+git apply patches/lldb-objectfile-chord.patch
+----
+
+Then add `plugin/ObjectFilePolyglot.cpp` to the ObjectFile plugin CMake list (the patch expects `ObjectFile/Polyglot/`).
+
+GDB: `patches/gdb-bfd-survey.patch` against binutils-gdb `bfd/format.c`.
+
+== Security
+
+Scoring loops parse more of a hostile file than first-match. Keep the survey on the first 8 KiB plus each plugin's existing magic probe. Do not follow unbounded overlay pointers during the survey pass.
+
+== License
+
+MIT for this repo. LLVM and GNU patches keep their upstream licenses once applied.

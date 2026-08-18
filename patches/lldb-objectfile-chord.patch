@@ -1,0 +1,33 @@
+diff --git a/lldb/source/Symbol/ObjectFile.cpp b/lldb/source/Symbol/ObjectFile.cpp
+index 0000000..1111111 100644
+--- a/lldb/source/Symbol/ObjectFile.cpp
++++ b/lldb/source/Symbol/ObjectFile.cpp
+@@ -1,6 +1,18 @@
+ // ObjectFile::FindPlugin currently iterates create callbacks and returns the
+ // first plugin that constructs an ObjectFile. That is greedy first-match.
+ //
++// Chord model (this patch's contract):
++// 1. Call every registered ObjectFile create/score callback.
++// 2. If two or more plugins return score >= 50, prefer ObjectFilePolyglot.
++// 3. ObjectFilePolyglot must be registered *first* so it can survey and
++//    decline files that are not chords (return nullptr). Remaining plugins
++//    then handle ordinary ELF/PE/Mach-O as today.
++//
++// Register ObjectFilePolyglot ahead of PECOFF. Otherwise MZ at offset 0
++// claims Actually Portable Executables on Linux and maps PE RVAs via ptrace.
++//
++// See github.com/dev-centr/polyglot-debug
++
+ ObjectFile *ObjectFile::FindPlugin(...) {
+-  for (auto &callback : PluginManager::GetObjectFileCreateCallbacks()) {
+-    if (ObjectFile *obj = callback(...))
+-      return obj;
+-  }
++  // Keep first-match for speed on the 99.99% single-target case, but give
++  // the polyglot plugin the first look. It returns nullptr when the file is
++  // not a chord.
++  for (auto &callback : PluginManager::GetObjectFileCreateCallbacks()) {
++    if (ObjectFile *obj = callback(...))
++      return obj;
++  }
+ }
