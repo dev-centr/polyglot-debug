@@ -3,4 +3,4 @@
 
 Upstream-shaped LLDB and GDB patches. Greedy first-match on `MZ` is why Actually Portable Executables debug as Windows images on Linux.
 
-xref:general-knowledge:explanation/architecture/polyglot-distribution.adoc[Polyglot distribution]
+xref:general-knowledge::explanation/architecture/polyglot-distribution.adoc[Polyglot distribution]
